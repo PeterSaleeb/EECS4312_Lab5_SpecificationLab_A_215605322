@@ -64,3 +64,69 @@ def test_lunch_break_blocks_all_slots_during_lunch():
     assert "12:45" not in slots
 
 """TODO: Add at least 5 additional test cases to test your implementation."""
+
+def test_invalid_meeting_duration_returns_empty():
+    """
+    Edge case:
+    Invalid meeting duration should return empty list.
+    """
+    events = [{"start": "09:00", "end": "10:00"}]
+
+    assert suggest_slots(events, meeting_duration="30", day="2026-02-01") == []
+    assert suggest_slots(events, meeting_duration=25 * 60, day="2026-02-01") == []
+
+
+def test_invalid_events_are_ignored():
+    """
+    Edge case:
+    If events are malformed, assume no events.
+    """
+    events = [
+        {"start": "10:00"},                     # missing end
+        {"start": "11:00", "end": "10:00"},     # end before start
+        {"start": "xx:yy", "end": "12:00"},     # invalid time
+    ]
+
+    slots = suggest_slots(events, meeting_duration=30, day="2026-02-01")
+
+    assert "09:00" in slots
+    assert "10:00" in slots
+
+
+def test_day_not_today_assumes_no_events():
+    """
+    Rule:
+    If day is not today, assume no events.
+    """
+    events = [{"start": "09:00", "end": "17:00"}]
+
+    slots = suggest_slots(events, meeting_duration=60, day="2099-01-01")
+
+    assert "09:00" in slots
+    assert "16:00" in slots
+
+
+def test_invalid_day_assumes_today():
+    """
+    Rule:
+    Invalid day should default to today.
+    """
+    events = [{"start": "09:00", "end": "10:00"}]
+
+    slots = suggest_slots(events, meeting_duration=30, day="NotADay")
+
+    assert "09:00" not in slots
+    assert "10:00" in slots
+
+
+def test_meeting_cannot_extend_past_working_hours():
+    """
+    Constraint:
+    Meeting must fully fit within working hours.
+    """
+    events = []
+
+    slots = suggest_slots(events, meeting_duration=90, day="2026-02-01")
+
+    assert "15:30" in slots      # ends at 17:00
+    assert "16:00" not in slots  # would end at 17:30
