@@ -110,8 +110,104 @@ say the word and we’ll tweak it.
 
 
 --------------------------------------------------
-Prompt 2: "Copy paste your question"
-LLM Response 2: "Copy paste LLMs response"
+Prompt 2: 
+please edit the code to do these things: if invalid events given or day given is not today, assume no events if invalid day give, assume today if invalid meeting duration (not int, or > 24*60) return empty list
+
+LLM Response 2: 
+Got it — here’s an **edited version of the function** with your new rules applied, while keeping the behavior clear and defensive.
+
+### What changed (plain English)
+
+* **Invalid meeting duration** (not `int` or > 24h) → return `[]`
+* **Invalid day string** → assume **today**
+* **Day is not today** → assume **no events**
+* **Invalid events list** (bad format, bad times, start ≥ end, etc.) → assume **no events**
+* Still respects **09:00–17:00 working hours** and weekdays
+
+---
+
+### Updated implementation
+
+```python
+from typing import List, Dict
+from datetime import datetime
+
+def suggest_slots(
+    events: List[Dict[str, str]],
+    meeting_duration: int,
+    day: str
+) -> List[str]:
+
+    # Validate meeting duration
+    if not isinstance(meeting_duration, int) or meeting_duration <= 0 or meeting_duration > 24 * 60:
+        return []
+
+    WORK_START = 9 * 60    # 09:00
+    WORK_END = 17 * 60    # 17:00
+    WEEKDAYS = {"Mon", "Tue", "Wed", "Thu", "Fri"}
+
+    def to_minutes(t: str) -> int:
+        h, m = map(int, t.split(":"))
+        if not (0 <= h < 24 and 0 <= m < 60):
+            raise ValueError
+        return h * 60 + m
+
+    def to_time_str(minutes: int) -> str:
+        return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+    # Determine today's day abbreviation
+    today = datetime.today().strftime("%a")
+
+    # If invalid day provided, assume today
+    if day not in WEEKDAYS:
+        day = today
+
+    # If day is not today, assume no events
+    if day != today:
+        events = []
+
+    # Try to parse events; if anything is invalid, assume no events
+    busy_intervals = []
+    try:
+        for e in events:
+            start = to_minutes(e["start"])
+            end = to_minutes(e["end"])
+            if start >= end:
+                raise ValueError
+            busy_intervals.append((start, end))
+    except Exception:
+        busy_intervals = []
+
+    busy_intervals.sort(key=lambda x: x[0])
+
+    available_starts = []
+    current_time = WORK_START
+
+    for start, end in busy_intervals:
+        while current_time + meeting_duration <= min(start, WORK_END):
+            available_starts.append(to_time_str(current_time))
+            current_time += 1
+
+        if current_time < end:
+            current_time = max(current_time, end)
+
+    while current_time + meeting_duration <= WORK_END:
+        available_starts.append(to_time_str(current_time))
+        current_time += 1
+
+    return available_starts
+```
+
+---
+
+If you want, I can:
+
+* Add **unit tests** for all these edge cases
+* Change granularity (e.g., 5-min or 15-min steps)
+* Make “today” injectable for easier testing
+
+Just say the word 👍
+
 --------------------------------------------------
 --------------------------------------------------
 Prompt 2: "Copy paste your question"
