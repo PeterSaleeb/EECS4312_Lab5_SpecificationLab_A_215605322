@@ -1,6 +1,6 @@
 ## TODO:
-## Student Name:
-## Student ID: 
+## Student Name: Peter Saleeb
+## Student ID: 215605322
 
 # Meeting Slot Suggestion Lab Repository
 

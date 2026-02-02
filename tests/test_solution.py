@@ -1,5 +1,5 @@
-## Student Name:
-## Student ID: 
+## Student Name: Peter Saleeb
+## Student ID: 215605322
 
 """
 Public test suite for the meeting slot suggestion exercise.
