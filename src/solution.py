@@ -26,10 +26,9 @@ def suggest_slots(
     Returns:
         List of valid start times as "HH:MM" sorted ascending
     """
-    # TODO: Implement this function
-        # Only allow weekdays
-    from typing import List, Dict
-from datetime import datetime
+
+from typing import List, Dict
+from datetime import datetime, timedelta
 
 def suggest_slots(
     events: List[Dict[str, str]],
@@ -41,9 +40,15 @@ def suggest_slots(
     if not isinstance(meeting_duration, int) or meeting_duration <= 0 or meeting_duration > 24 * 60:
         return []
 
-    WORK_START = 9 * 60    # 09:00
-    WORK_END = 17 * 60    # 17:00
-    WEEKDAYS = {"Mon", "Tue", "Wed", "Thu", "Fri"}
+    WORK_START = 9 * 60
+    WORK_END = 17 * 60
+    LUNCH_START = 12 * 60
+    LUNCH_END = 13 * 60
+
+    WEEKDAY_INDEX = {
+        "mon": 0, "tue": 1, "wed": 2,
+        "thu": 3, "fri": 4, "sat": 5, "sun": 6
+    }
 
     def to_minutes(t: str) -> int:
         h, m = map(int, t.split(":"))
@@ -54,28 +59,43 @@ def suggest_slots(
     def to_time_str(minutes: int) -> str:
         return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
-    # Determine today's day abbreviation
-    today = datetime.today().strftime("%a")
+    # Resolve requested day to a concrete date
+    today = datetime.today().date()
+    day_lower = day.lower()
 
-    # If invalid day provided, assume today
-    if day not in WEEKDAYS:
-        day = today
-
-    # If day is not today, assume no events
-    if day != today:
-        events = []
-
-    # Try to parse events; if anything is invalid, assume no events
-    busy_intervals = []
     try:
-        for e in events:
+        # Case 1: explicit date YYYY-MM-DD
+        target_date = datetime.strptime(day, "%Y-%m-%d").date()
+    except ValueError:
+        # Case 2: weekday abbreviation
+        if day_lower in WEEKDAY_INDEX:
+            target_weekday = WEEKDAY_INDEX[day_lower]
+            delta = (target_weekday - today.weekday()) % 7
+            if delta == 0:
+                delta = 7  # next occurrence, not today
+            target_date = today + timedelta(days=delta)
+        else:
+            target_date = datetime.today().date() 
+
+    target_date_str = target_date.strftime("%Y-%m-%d")
+
+    # Parse events
+    busy_intervals = [(LUNCH_START, LUNCH_END)]
+
+    for e in events:
+        try:
+            if e.get("day") != target_date_str:
+                continue
+
             start = to_minutes(e["start"])
             end = to_minutes(e["end"])
+
             if start >= end:
-                raise ValueError
+                continue
+
             busy_intervals.append((start, end))
-    except Exception:
-        busy_intervals = []
+        except Exception:
+            continue  # ignore malformed event only
 
     busy_intervals.sort(key=lambda x: x[0])
 
