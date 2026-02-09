@@ -82,6 +82,9 @@ def suggest_slots(
     # Parse events
     busy_intervals = [(LUNCH_START, LUNCH_END)]
 
+    if target_date.weekday() == 4: # no events after 3pm on friday
+        busy_intervals.append((15*60, 17*60))
+
     for e in events:
         try:
             if e.get("day") != target_date_str:

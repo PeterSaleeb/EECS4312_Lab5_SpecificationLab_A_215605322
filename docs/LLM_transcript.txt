@@ -962,3 +962,191 @@ If you want next, I can:
 You’re very close to a rock-solid solution 👌
 
 --------------------------------------------------
+
+
+
+--------------------------------------------------
+Prompt 7: 
+
+
+today = datetime.today().date()
+    day_lower = day.lower()
+
+    try:
+        # Case 1: explicit date YYYY-MM-DD
+        target_date = datetime.strptime(day, "%Y-%m-%d").date()
+    except ValueError:
+        # Case 2: weekday abbreviation
+        if day_lower in WEEKDAY_INDEX:
+            target_weekday = WEEKDAY_INDEX[day_lower]
+            delta = (target_weekday - today.weekday()) % 7
+            if delta == 0:
+                delta = 7  # next occurrence, not today
+            target_date = today + timedelta(days=delta)
+        else:
+            target_date = datetime.today().date() 
+
+    target_date_str = target_date.strftime("%Y-%m-%d")
+
+    # Parse events
+    busy_intervals = [(LUNCH_START, LUNCH_END)]
+
+    for e in events:
+        try:
+            if e.get("day") != target_date_str:
+                continue
+
+            start = to_minutes(e["start"])
+            end = to_minutes(e["end"])
+
+            if start >= end:
+                continue
+            
+            if e.get("day") == "fri":
+                busy_intervals.append((15*60, 17*60))
+
+            busy_intervals.append((start, end))
+        except Exception:
+            continue  # ignore malformed event only
+
+    busy_intervals.sort(key=lambda x: x[0])
+
+    assume all non defined functions work, i want to to make the friday check to also check if a given YYYY-MM-DD date format is a friday
+
+LLM Response 7:
+
+You’re almost there — you already have the right pieces. The key is: **once you have a `date` object, you don’t need strings like `"fri"` at all**.
+
+In Python:
+
+* `date.weekday()` → Monday = 0 … Sunday = 6
+* **Friday = 4**
+
+### Clean, correct way to check for Friday (works for YYYY-MM-DD too)
+
+Since you already computed `target_date` as a `date` object, just do this **once**:
+
+```python
+is_friday = target_date.weekday() == 4
+```
+
+Then use it when building `busy_intervals`.
+
+### Minimal change to your loop
+
+Replace this:
+
+```python
+if e.get("day") == "fri":
+    busy_intervals.append((15*60, 17*60))
+```
+
+With this:
+
+```python
+if is_friday:
+    busy_intervals.append((15*60, 17*60))
+```
+
+### Why this is better
+
+* Works for:
+
+  * `"fri"`
+  * `"Friday"`
+  * `"2026-02-13"` (or any YYYY-MM-DD that happens to be a Friday)
+* Avoids string comparisons entirely
+* Uses the **actual calendar date**, not user input quirks
+
+### Optional: if you still want to support `"fri"` input explicitly
+
+You *can*, but it’s redundant if `target_date` is derived correctly. Still, for completeness:
+
+```python
+is_friday = (
+    target_date.weekday() == 4
+    or day_lower == "fri"
+)
+```
+
+But honestly? The first version is the clean one 👍
+
+If you want, I can help you refactor this so weekday logic only lives in one place instead of being scattered through the code.
+
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------
+
+
+--------------------------------------------------
+Prompt : 
+
+LLM Response : 
+--------------------------------------------------

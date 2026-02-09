@@ -196,3 +196,14 @@ def test_overlapping_events_block_union():
     assert "09:30" not in slots
     assert "10:30" not in slots
     assert "11:00" in slots
+
+def test_no_meetings_after_3pm_friday():
+    events = [
+        {"start": "09:30", "end": "10:30", "day": TEST_DAY}, 
+        {"start": "13:00", "end": "14:00", "day": TEST_DAY},
+    ]
+
+    slots = suggest_slots(events, meeting_duration=30, day="fri")
+
+    assert "15:00" not in slots
+    assert "16:00" not in slots
